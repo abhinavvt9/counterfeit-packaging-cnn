@@ -1,0 +1,11 @@
+scheme,fold,n_train,n_val,n_test,test_counterfeit,test_images_with_duplicate_in_train
+random,0,423,85,128,48,24
+random,1,424,85,127,48,26
+random,2,424,85,127,48,30
+random,3,424,85,127,47,25
+random,4,424,85,127,47,33
+grouped,0,424,85,127,48,0
+grouped,1,423,85,128,48,0
+grouped,2,424,85,127,48,0
+grouped,3,424,85,127,47,0
+grouped,4,424,85,127,47,0

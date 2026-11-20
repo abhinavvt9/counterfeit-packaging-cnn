@@ -1,0 +1,7 @@
+{
+  "n_images": 636,
+  "metadata_only_classifier_accuracy": 1.0,
+  "file_format_rule_accuracy": 1.0,
+  "brightness_median_rule_accuracy": 0.7515723270440252,
+  "majority_class_accuracy": 0.6257861635220126
+}

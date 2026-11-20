@@ -1,0 +1,9 @@
+{
+  "image_files_found": 2224,
+  "unique_images": 646,
+  "exact_duplicates_removed": 1578,
+  "unlabelled_skipped": 0,
+  "unreadable_skipped": 0,
+  "final_images": 636,
+  "removed_conflicting_label_images": 10
+}

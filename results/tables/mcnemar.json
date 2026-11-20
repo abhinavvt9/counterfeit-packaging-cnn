@@ -1,0 +1,7 @@
+{
+  "cnn_configuration": "E2_bn_gap",
+  "wrong_only_svm": 27,
+  "wrong_only_cnn": 42,
+  "wrong_both": 22,
+  "p_value": 0.0912
+}

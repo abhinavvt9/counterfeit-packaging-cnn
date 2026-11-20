@@ -1,0 +1,6 @@
+{
+  "border_share_genuine": 0.46453033395149,
+  "border_share_counterfeit": 0.49065301473401174,
+  "border_area_share": 0.51,
+  "note": "share of Grad-CAM mass in the outer 15% frame; the frame is 51% of the area"
+}

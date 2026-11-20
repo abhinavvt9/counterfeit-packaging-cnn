@@ -1,0 +1,50 @@
+rel_path,label,file_format,width,height,file_size_kb,mean_brightness,true_class,model_score,error_type,fold
+dataset/Fake/Screenshot 2025-09-17 194307.png,1,PNG,401,476,188.220703125,0.7968635559082031,counterfeit,0.30468774475315713,FN (missed counterfeit),0
+dataset/Fake/Screenshot 2025-09-17 192722.png,1,PNG,402,303,150.826171875,0.7070982456207275,counterfeit,0.337433107639074,FN (missed counterfeit),3
+dataset/Fake/Screenshot 2025-09-17 175749.png,1,PNG,961,634,756.2021484375,0.6547603011131287,counterfeit,0.41604116601019103,FN (missed counterfeit),2
+dataset/Fake/Screenshot 2025-09-17 184945.png,1,PNG,741,421,36.9755859375,0.6709941625595093,counterfeit,0.41938899247772826,FN (missed counterfeit),1
+dataset/Fake/Screenshot 2025-09-17 185753.png,1,PNG,459,731,140.4453125,0.8084597587585449,counterfeit,0.42233914897067315,FN (missed counterfeit),1
+dataset/Fake/Screenshot 2025-09-17 180914.png,1,PNG,276,596,302.8701171875,0.6467477083206177,counterfeit,0.4330121128354248,FN (missed counterfeit),4
+dataset/Fake/Screenshot 2025-09-17 191833.png,1,PNG,588,706,376.44140625,0.7627938985824585,counterfeit,0.43625700748727214,FN (missed counterfeit),0
+dataset/Fake/Screenshot 2025-09-17 183005.png,1,PNG,690,434,424.396484375,0.559814453125,counterfeit,0.43843413186270724,FN (missed counterfeit),4
+dataset/Fake/Screenshot 2025-09-17 194040.png,1,PNG,1172,341,429.791015625,0.6059072613716125,counterfeit,0.43853743749974494,FN (missed counterfeit),0
+dataset/Fake/Screenshot 2025-09-17 183849.png,1,PNG,652,387,285.541015625,0.6222235560417175,counterfeit,0.4447560987375959,FN (missed counterfeit),1
+dataset/Fake/Screenshot 2025-09-17 174345.png,1,PNG,533,716,723.3984375,0.4807817935943603,counterfeit,0.4621332694193666,FN (missed counterfeit),4
+dataset/Fake/Screenshot 2025-09-17 193608.png,1,PNG,473,439,227.3251953125,0.7316300868988037,counterfeit,0.4706529370049943,FN (missed counterfeit),2
+dataset/Fake/Screenshot 2025-09-17 190956.png,1,PNG,491,401,53.0048828125,0.9386556148529052,counterfeit,0.4746326133092971,FN (missed counterfeit),2
+dataset/Fake/Screenshot 2025-09-17 192053.png,1,PNG,464,674,538.9140625,0.5687538385391235,counterfeit,0.4750388174252142,FN (missed counterfeit),3
+dataset/Fake/Screenshot 2025-09-17 193416.png,1,PNG,206,269,84.771484375,0.6926231384277344,counterfeit,0.48182648813031215,FN (missed counterfeit),4
+dataset/Fake/Screenshot 2025-09-17 181900.png,1,PNG,794,488,394.6416015625,0.6363817453384399,counterfeit,0.48565995623620956,FN (missed counterfeit),1
+dataset/Fake/Screenshot 2025-09-17 193545.png,1,PNG,365,240,113.6875,0.7708917856216431,counterfeit,0.4862905804533432,FN (missed counterfeit),1
+dataset/Fake/Screenshot 2025-09-17 175322.png,1,PNG,322,532,211.251953125,0.6115847229957581,counterfeit,0.48888840553010904,FN (missed counterfeit),1
+dataset/Fake/Screenshot 2025-09-17 184957.png,1,PNG,294,484,46.646484375,0.5055970549583435,counterfeit,0.48897874847304723,FN (missed counterfeit),3
+dataset/Fake/Screenshot 2025-09-17 180529.png,1,PNG,324,295,29.0,0.517329216003418,counterfeit,0.49306874565111053,FN (missed counterfeit),1
+dataset/Fake/Screenshot 2025-09-17 180452.png,1,PNG,491,718,320.7265625,0.7484298348426819,counterfeit,0.49586620516166097,FN (missed counterfeit),3
+dataset/Real/images4023.jpg,0,JPEG,100,100,2.712890625,0.4025112986564636,genuine,0.5035484685191249,FP (genuine flagged),1
+dataset/Real/images4100.jpg,0,JPEG,277,182,11.95703125,0.7715944647789001,genuine,0.5067023066761309,FP (genuine flagged),0
+dataset/Real/images314.jpg,0,JPEG,225,225,7.40234375,0.7596086263656616,genuine,0.506909483606085,FP (genuine flagged),0
+dataset/Real/images4073.jpg,0,JPEG,259,195,6.9560546875,0.7748085260391235,genuine,0.508045017682957,FP (genuine flagged),4
+dataset/Real/images5038.jpg,0,JPEG,205,246,9.9091796875,0.7402755618095398,genuine,0.5141400011189473,FP (genuine flagged),0
+dataset/Real/images319.jpg,0,JPEG,269,187,6.6025390625,0.4074726104736328,genuine,0.5144010346225772,FP (genuine flagged),3
+dataset/Real/images4055.jpg,0,JPEG,281,180,6.978515625,0.8177437782287598,genuine,0.5190396912177287,FP (genuine flagged),0
+dataset/Real/images5096.jpg,0,JPEG,249,203,9.1904296875,0.6422602534294128,genuine,0.5197420921292645,FP (genuine flagged),1
+dataset/Real/images15.jpg,0,JPEG,283,178,5.5986328125,0.838049590587616,genuine,0.5302583506437263,FP (genuine flagged),4
+dataset/Real/images4092.jpg,0,JPEG,259,194,6.7060546875,0.8969161510467529,genuine,0.5304221783993928,FP (genuine flagged),3
+dataset/Real/images272.jpg,0,JPEG,198,155,6.796875,0.5672975778579712,genuine,0.531935219172264,FP (genuine flagged),3
+dataset/Real/images39.jpg,0,JPEG,298,169,6.4619140625,0.6177505254745483,genuine,0.5319357108708136,FP (genuine flagged),3
+dataset/Real/images5007.jpg,0,JPEG,100,100,2.8583984375,0.7260608077049255,genuine,0.5340574088183278,FP (genuine flagged),4
+dataset/Real/images4043.jpg,0,JPEG,241,209,8.2041015625,0.8063639402389526,genuine,0.5426470773705989,FP (genuine flagged),3
+dataset/Real/images5028.jpg,0,JPEG,225,225,7.3193359375,0.7461138963699341,genuine,0.5573610628350607,FP (genuine flagged),0
+dataset/Real/images5122.jpg,0,JPEG,225,225,10.5263671875,0.4791647791862488,genuine,0.5663671828883337,FP (genuine flagged),1
+dataset/Real/images12.jpg,0,JPEG,179,281,8.1298828125,0.6431745886802673,genuine,0.5740552706394692,FP (genuine flagged),0
+dataset/Real/images5013.jpg,0,JPEG,100,100,1.9248046875,0.8221842050552368,genuine,0.5773451983288964,FP (genuine flagged),3
+dataset/Real/images5113.jpg,0,JPEG,205,246,7.3525390625,0.6868154406547546,genuine,0.5792571042877341,FP (genuine flagged),1
+dataset/Real/images4085.jpg,0,JPEG,268,188,10.3388671875,0.762134313583374,genuine,0.579539501512196,FP (genuine flagged),1
+dataset/Real/images5117.jpg,0,JPEG,225,225,12.3388671875,0.6181861162185669,genuine,0.5802210748807962,FP (genuine flagged),4
+dataset/Real/images4012.jpg,0,JPEG,100,100,1.91015625,0.733447253704071,genuine,0.5862263730036736,FP (genuine flagged),4
+dataset/Real/images5047.jpg,0,JPEG,100,100,2.732421875,0.4862343072891235,genuine,0.6298362159823432,FP (genuine flagged),1
+dataset/Real/images4036.jpg,0,JPEG,234,215,13.4970703125,0.613132894039154,genuine,0.6390304774359524,FP (genuine flagged),4
+dataset/Real/images5102.jpg,0,JPEG,100,100,2.4775390625,0.4754978716373443,genuine,0.6408570017691574,FP (genuine flagged),3
+dataset/Real/images4115.jpg,0,JPEG,168,300,7.7158203125,0.473561018705368,genuine,0.6411408165892227,FP (genuine flagged),2
+dataset/Real/images240.jpg,0,JPEG,192,263,8.8525390625,0.5233532786369324,genuine,0.6505445475069418,FP (genuine flagged),4
+dataset/Real/images244.jpg,0,JPEG,300,168,9.2119140625,0.4958917498588562,genuine,0.6869307761567127,FP (genuine flagged),1
