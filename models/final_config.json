@@ -1,0 +1,27 @@
+{
+  "experiment": "E2_bn_gap",
+  "config": {
+    "filters": [
+      32,
+      64,
+      128
+    ],
+    "use_bn": true,
+    "head": "gap",
+    "dense_units": 64,
+    "dropout": 0.0,
+    "augment": false,
+    "lr": 0.001,
+    "weight_decay": 0.0
+  },
+  "img_size": 128,
+  "protocol": "controlled",
+  "n_parameters": 101793,
+  "best_epoch": 31,
+  "n_train": 543,
+  "n_val": 93,
+  "class_names": {
+    "0": "genuine",
+    "1": "counterfeit"
+  }
+}

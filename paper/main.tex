@@ -1,0 +1,360 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+% >>> Change this ONE line to your GitHub repository link <<<
+\newcommand{\repourl}{https://github.com/abhinavvt9/counterfeit-packaging-cnn}
+
+\newcommand{\pmv}[2]{#1\,$\pm$\,#2}
+\graphicspath{{figures/}}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\dblfloatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{dbltopnumber}{2}
+\setcounter{totalnumber}{4}
+
+\begin{document}
+
+\title{A Lightweight CNN Trained from Scratch for Counterfeit Pharmaceutical Packaging Detection, with a Dataset Shortcut Audit}
+
+\author{\IEEEauthorblockN{Abhinav Shankar Tripathi}
+\IEEEauthorblockA{\textit{Department of Information Technology} \\
+\textit{Netaji Subhas University of Technology}\\
+New Delhi, India \\
+Roll No. 2026PIT4212}
+\and
+\IEEEauthorblockN{Saksham Bhatnagar}
+\IEEEauthorblockA{\textit{Department of Information Technology} \\
+\textit{Netaji Subhas University of Technology}\\
+New Delhi, India \\
+Roll No. 2026PIT4210}
+\and
+\IEEEauthorblockN{Dr.\ Ankush Jain}
+\IEEEauthorblockA{\textit{Department of Information Technology} \\
+\textit{Netaji Subhas University of Technology}\\
+New Delhi, India \\
+Supervisor}
+}
+
+\maketitle
+
+\begin{abstract}
+Counterfeit medicines are a serious public-health threat, and image-based screening of their packaging has been proposed as a low-cost first check. We design a lightweight convolutional neural network (CNN) that is trained entirely from scratch, without pretrained weights, to classify pharmaceutical packaging images as genuine or counterfeit, and compare it with a handcrafted-feature support vector machine (SVM). Using the public Kaggle \emph{Fake vs Real Medicine} dataset, we first build a leakage-free benchmark: 1{,}578 exact duplicates are removed with MD5 hashing, near-duplicates are grouped with a rotation-aware perceptual hash, and evaluation uses grouped 5-fold cross-validation. Seven controlled experiments show that replacing the flatten layer with global average pooling and adding batch normalisation reduces the network from 4.29\,M to 0.10\,M parameters (42$\times$ smaller) without loss of accuracy. The selected CNN reaches \pmv{89.9}{3.7}\% accuracy, \pmv{96.0}{2.1}\% ROC-AUC and \pmv{92.4}{3.9}\% recall on counterfeits; the SVM reaches \pmv{92.3}{2.9}\% accuracy, and the difference is not significant (McNemar $p=0.09$). Our main contribution is a shortcut audit of the dataset. A classifier using only file metadata predicts the label with 100\% accuracy, and an SVM that sees only the image border, with the packaging masked out, still reaches 90.7\%. High accuracy on this benchmark therefore reflects how the two classes were collected more than counterfeit evidence. We release the code, the trained model, the audit probes and a demo application.
+\end{abstract}
+
+\begin{IEEEkeywords}
+counterfeit medicine, convolutional neural network, support vector machine, shortcut learning, data leakage, Grad-CAM
+\end{IEEEkeywords}
+
+%=====================================================================
+\section{Introduction}
+Substandard and falsified medical products may contain the wrong active ingredient, the wrong dose, or none at all, and they are a documented global problem, particularly where supply chains are weakly regulated. Reliable authentication needs laboratory analysis, security features or expert inspection, all of which are slow or need equipment. Because counterfeit packaging often differs from the genuine product in print quality, colour, fonts and layout, automatic image analysis has been proposed as a cheap screening step that could run on a phone~\cite{ramos2024,zakaria2025}.
+
+Deep CNNs are usually applied to such problems through transfer learning from ImageNet. In this work we deliberately train a \emph{small CNN from scratch}, which is closer to what can be deployed on low-cost devices and makes every learned feature attributable to the task data. The question we ask is not only how accurate such a model can be, but also whether its accuracy can be trusted. Deep networks are known to exploit \emph{shortcuts}, simple cues that correlate with the label but are unrelated to the intended task~\cite{geirhos2020,zech2018}, and public counterfeit-medicine datasets are often assembled from different sources for the two classes~\cite{provenance2026}.
+
+We address two research questions:
+\begin{itemize}
+\item \textbf{RQ1:} Can a lightweight CNN trained from scratch learn features that separate genuine from counterfeit packaging, and how does it compare with a handcrafted-feature SVM under the same protocol?
+\item \textbf{RQ2:} To what extent do the measured accuracies reflect counterfeit-related visual evidence rather than differences in how the classes were collected?
+\end{itemize}
+
+\noindent Our contributions are:
+\begin{enumerate}
+\item A \textbf{leakage-free benchmark} built from a public dataset: exact-duplicate removal, rotation-aware perceptual-hash grouping and grouped 5-fold cross-validation with an automatic leakage check.
+\item A \textbf{lightweight CNN trained from scratch} (101{,}793 parameters), designed through seven one-change-at-a-time experiments, with model selection on validation data only.
+\item A \textbf{fair comparison} with a 407-dimensional handcrafted-feature SVM, including a paired significance test.
+\item A \textbf{shortcut audit}: a metadata-only probe, a controlled preprocessing protocol, a border-only background probe, Grad-CAM and error analysis. Together they show that the benchmark is confounded, and they form a reusable checklist for future datasets.
+\item An \textbf{open-source, reproducible implementation} with a web demo, available at \url{\repourl}.
+\end{enumerate}
+
+%=====================================================================
+\section{Related Work}
+\textbf{Image-based medicine authentication.} Ramos \emph{et al.}~\cite{ramos2024} authenticate a locally sold paracetamol product with image processing, comparing SVM and CNN classifiers, and report about 88.75\% accuracy on self-captured images acquired with a single camera setup. Zakaria \emph{et al.}~\cite{zakaria2025} inspect package designs with multimodal large language models using text and image prompts. Other approaches use handcrafted features with classical classifiers or keypoint matching against reference photographs. Many studies construct the counterfeit class synthetically or collect the two classes from different sources, so the classes may differ in acquisition by construction~\cite{provenance2026}.
+
+\textbf{Shortcut learning and leakage.} Geirhos \emph{et al.}~\cite{geirhos2020} describe how deep networks solve benchmarks through cues that correlate with labels. Zech \emph{et al.}~\cite{zech2018} showed that a chest X-ray model exploited hospital-specific image properties and generalised poorly to other hospitals. For the dataset used here, a 2026 study~\cite{provenance2026} reported a near-total confound between class and image source. Data leakage through near-duplicate images inflates test results and is avoided by splitting on groups of related images.
+
+\textbf{Methods.} We use SVMs~\cite{cortes1995}, HOG~\cite{dalal2005} and LBP~\cite{ojala2002} descriptors, batch normalisation~\cite{ioffe2015}, dropout~\cite{srivastava2014}, global average pooling~\cite{lin2014}, Adam~\cite{kingma2015} and Grad-CAM~\cite{selvaraju2017}.
+
+\textbf{Gap.} Published results in this area rarely report grouped (leakage-free) splits, variability across folds, or a check that the two classes were acquired under comparable conditions. This work combines a from-scratch CNN and SVM comparison with all three.
+
+%=====================================================================
+\section{Dataset}
+We use \emph{Fake vs Real Medicine Datasets Images} from Kaggle~\cite{kaggle}. The archive has \texttt{Fake/} and \texttt{Real/} folders, and also \texttt{train/}, \texttt{val/} and \texttt{test/} folders that turn out to contain copies of the same files. The collection and labelling procedure is not documented.
+
+\textbf{Cleaning.} Table~\ref{tab:cleaning} summarises the cleaning. Exact duplicates are files with identical MD5 digests. Without this step most images would appear several times, and many test images would also be in training.
+
+\begin{table}[t]
+\caption{Dataset cleaning}
+\label{tab:cleaning}
+\centering
+\begin{tabular}{lr}
+\toprule
+Step & Images \\
+\midrule
+Image files in the archive & 2{,}224 \\
+Exact duplicates removed (identical MD5) & $-$1{,}578 \\
+Unique images & 646 \\
+Near-duplicate groups with mixed labels, removed & $-$10 \\
+\midrule
+\textbf{Final dataset} & \textbf{636} \\
+\quad genuine / counterfeit & 398 / 238 \\
+\quad near-duplicate groups & 549 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Near-duplicate grouping.} For each image we compute a 64-bit DCT perceptual hash $h$: the image is converted to greyscale and resized to $32\times32$, its 2-D DCT is computed, and the $8\times8$ lowest-frequency coefficients are thresholded at their median. To catch rotated copies we also hash the $90^\circ$, $180^\circ$ and $270^\circ$ rotations $R_k$. Two images $a$ and $b$ are near-duplicates if
+\begin{equation}
+\min_{k\in\{0,1,2,3\}} \; d_H\!\left(h(a),\,h(R_k\,b)\right) \le 10,
+\end{equation}
+where $d_H$ is the Hamming distance. Near-duplicate pairs are merged into groups with union-find. The 636 images form 549 groups, and 158 images belong to groups with more than one member. Two groups contained both labels; since grouping is transitive and can chain visually different images, we removed these 10 images conservatively.
+
+%=====================================================================
+\section{Methodology}
+Fig.~\ref{fig:pipeline} shows the complete pipeline.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\columnwidth]{pipeline.png}
+\caption{System pipeline. The audit (green) is run before any model is trained.}
+\label{fig:pipeline}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.9\textwidth]{cnn_architecture_selected.png}
+\caption{Architecture of the selected CNN (E2), trained from scratch.}
+\label{fig:arch}
+\end{figure*}
+
+
+\subsection{Provenance audit}
+Before modelling we record each image's file format, width, height, file size and mean brightness. A logistic-regression classifier that sees \emph{only these five values} is evaluated with the same grouped cross-validation. If it succeeds, the label can be predicted without looking at the packaging. We also inspect a random sample of 40 images per class by eye.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{audit_plots.png}
+\caption{Provenance audit: brightness, file size and resolution by class. The classes are almost perfectly separated by properties unrelated to authenticity.}
+\label{fig:audit}
+\end{figure*}
+
+\subsection{Preprocessing protocols}
+All images are converted to RGB, respecting EXIF orientation, and brought to $128\times128\times3$.
+\begin{itemize}
+\item \textbf{Raw:} resize to $128\times128$, as a naive pipeline would.
+\item \textbf{Controlled (proposed):} resize the short side to 128 and centre-crop; re-encode every image as JPEG at quality 75 so both classes pass through the same compression; then normalise lightness in CIE-LAB space,
+\begin{equation}
+L' = \frac{L-\mu_L}{\sigma_L}\cdot 20 + 55,
+\end{equation}
+where $\mu_L$ and $\sigma_L$ are the mean and standard deviation of the image's lightness channel. Colour is preserved. The protocol uses no label information and is applied identically to every image and to the demo input.
+\end{itemize}
+The input size of 128 was chosen because genuine images are small (median $225\times225$ pixels, 16\% below 128 pixels on the short side). A larger input would upsample most genuine images while downsampling counterfeit ones, adding another difference between the classes.
+
+\subsection{Evaluation protocol}
+We use stratified grouped 5-fold cross-validation (\texttt{StratifiedGroupKFold}). In each fold about 20\% of the groups form the test set, and the remaining groups are split again into training (about 424 images) and validation (about 85 images, one sixth of the groups). Validation data are used only for early stopping and model selection, and test data only for reporting. Every image is tested exactly once, and we report mean\,$\pm$\,standard deviation over the five folds. For comparison we also build an ordinary random stratified split: it places 138 test images (24--33 per fold) next to a near-duplicate in training, while the grouped split has none, which a script verifies. Three conditions separate the effects of leakage and file-level shortcuts: \emph{naive} (raw, random split), \emph{leakage removed} (raw, grouped split) and \emph{controlled} (controlled, grouped split), which is the main setting.
+
+\subsection{Baseline: handcrafted features and SVM}
+Each image is described by 407 features: an HSV colour histogram (16 bins per channel, 48 values), RGB colour moments (6), uniform LBP histograms at two scales ($P{=}8,R{=}1$ and $P{=}16,R{=}2$; 28 values), HOG on a $64\times64$ greyscale image (9 orientations, $16\times16$ cells, $2\times2$ blocks; 324 values) and Canny edge density (1). Features are standardised with training statistics and an RBF-kernel SVM with balanced class weights is trained. $C\in\{0.1,1,10,100\}$ and $\gamma\in\{\text{scale},10^{-3},10^{-2}\}$ are selected per fold by validation F1.
+
+\subsection{Proposed model: lightweight CNN trained from scratch}
+The network (Fig.~\ref{fig:arch}) stacks three convolution blocks, each a $3\times3$ convolution with padding 1, batch normalisation, ReLU and $2\times2$ max pooling, with 32, 64 and 128 filters. Global average pooling reduces the $16\times16\times128$ feature map to a 128-dimensional vector, followed by a dense layer of 64 units with ReLU and a single output logit $z$. The counterfeit score is $s=\sigma(z)$. All weights start from PyTorch's default random initialisation; no pretrained weights are used. The model has 101{,}793 parameters.
+
+\textbf{Training.} To handle class imbalance (62.6\% genuine), the loss is binary cross-entropy with the positive (counterfeit) class weighted by $w_+=N_{\text{gen}}/N_{\text{cf}}$ of the training set:
+\begin{equation}
+\mathcal{L} = -\frac{1}{N}\sum_{i=1}^{N}\Big[w_+\,y_i\log\sigma(z_i) + (1-y_i)\log\big(1-\sigma(z_i)\big)\Big].
+\end{equation}
+We use Adam with learning rate $10^{-3}$, batches of 32, at most 60 epochs and early stopping with patience 10 on validation loss, restoring the best weights. Each fold uses a fixed seed. Where augmentation is enabled, it consists of random resized crops covering 85--100\% of the area, rotations within $\pm10^\circ$ and $\pm10\%$ brightness and contrast jitter. Flips are excluded because mirrored text does not occur on real packaging.
+
+\textbf{Controlled experiments.} Starting from the network in our project proposal, each experiment changes one design decision (Table~\ref{tab:exp}). The final configuration is the one with the highest \emph{mean validation} ROC-AUC; the test folds are never used for this choice.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{cnn_experiments.png}
+\caption{Validation AUC (used for selection) and test AUC of the seven CNN configurations.}
+\label{fig:exp}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{training_curves.png}
+\caption{Training and validation loss on fold 0: proposal CNN E1 (left) overfits after about five epochs; selected CNN E2 (right).}
+\label{fig:curves}
+\end{figure}
+
+\subsection{Metrics and interpretation tools}
+Counterfeit is the positive class. We report accuracy, balanced accuracy, precision $=\frac{TP}{TP+FP}$, recall $=\frac{TP}{TP+FN}$, $F_1=\frac{2PR}{P+R}$ and ROC-AUC. Recall matters most, because a missed counterfeit is the costly error. Predictions use a threshold of 0.5. The two models are compared with an exact McNemar test on their paired out-of-fold predictions. Model attention is visualised with Grad-CAM~\cite{selvaraju2017}, which weights the last convolutional feature maps $A^k$ by their average gradients:
+\begin{equation}
+\alpha_k = \frac{1}{Z}\sum_{i,j}\frac{\partial z}{\partial A^k_{ij}}, \qquad
+M = \mathrm{ReLU}\Big(\sum_k \alpha_k A^k\Big).
+\end{equation}
+Finally, a \textbf{background probe} replaces the central $70\%\times70\%$ of each controlled image with flat grey, leaving only the outer 15\% frame, and the SVM pipeline is retrained on these images. If the frame alone predicts the class, the classes differ in background or framing.
+
+%=====================================================================
+\section{Results}
+\begin{figure*}[t]
+\centering
+\begin{minipage}[b]{0.6\textwidth}\centering
+\includegraphics[width=\linewidth]{confusion_matrices.png}
+\caption{Confusion matrices summed over the five test folds (636 predictions per model).}
+\label{fig:cm}
+\end{minipage}\hfill
+\begin{minipage}[b]{0.36\textwidth}\centering
+\includegraphics[width=\linewidth]{roc_curves.png}
+\caption{ROC curves from pooled out-of-fold test predictions.}
+\label{fig:roc}
+\end{minipage}
+\end{figure*}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.92\columnwidth]{gradcam_examples.jpg}
+\caption{Grad-CAM of the selected CNN on test images, each produced by the fold model that did not train on it (red = evidence for ``counterfeit'').}
+\label{fig:gradcam}
+\end{figure}
+
+
+\subsection{Provenance audit}
+Table~\ref{tab:audit} and Fig.~\ref{fig:audit} show that the two classes come from different collection processes. Every genuine image is a small JPEG with a generic file name, and every counterfeit image is a large PNG screenshot. A classifier using only file metadata reaches \textbf{100.0\%} accuracy, and the single rule ``PNG $\rightarrow$ counterfeit'' is also 100\% correct, while the majority-class baseline is 62.6\% and a brightness threshold alone gives 75.2\%. The manual review shows content-level differences as well: 26 of 40 genuine images, against 3 of 40 counterfeit ones, have a plain light background; 14 counterfeit images, and no genuine image, show Chinese-language text; and no brand appears in both samples. Genuine images are mainly online-pharmacy catalogue photos of Indian brands, while counterfeit images are mainly tight crops of blister packs and boxes.
+
+\begin{table}[t]
+\caption{Provenance audit: file properties by class}
+\label{tab:audit}
+\centering
+\begin{tabular}{lcc}
+\toprule
+Property & Genuine & Counterfeit \\
+\midrule
+File format & JPEG (100\%) & PNG (100\%) \\
+Median resolution (px) & $225\times225$ & $452\times549$ \\
+Median file size & 6.4 KB & 324 KB \\
+Mean brightness (0--1) & 0.77 & 0.57 \\
+\midrule
+Metadata-only classifier & \multicolumn{2}{c}{100.0\% accuracy} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{CNN experiments}
+Table~\ref{tab:exp} and Fig.~\ref{fig:exp} report the seven experiments. The proposal network E1 has 4.29\,M parameters, almost all in its flatten-to-dense layer. Its validation loss is lowest after about five epochs and then rises while training loss approaches zero, a clear sign of overfitting (Fig.~\ref{fig:curves}). Adding batch normalisation and replacing flatten with global average pooling (E2) cuts the model to 101{,}793 parameters, \textbf{42$\times$ fewer}, and raises mean test accuracy from 87.1\% to 89.9\%. E2 has the highest mean validation AUC (95.9\%) and is selected. Dropout, augmentation, a fourth block, a lower learning rate and narrower filters did not improve results beyond the fold-to-fold variation of 2--5 points; E6 is essentially tied with E2.
+
+\begin{table*}[t]
+\caption{CNN experiments (controlled protocol, grouped 5-fold CV; \%, mean $\pm$ std over folds). Selection uses validation AUC only.}
+\label{tab:exp}
+\centering
+\begin{tabular}{llrcccccc}
+\toprule
+ID & Change from previous & Params & Best epoch & Val AUC & Test Acc & Test Recall & Test F1 & Test AUC \\
+\midrule
+E1 & Proposal CNN (Flatten, no BN) & 4{,}287{,}809 & 4.6 & \pmv{95.6}{2.2} & \pmv{87.1}{2.6} & \pmv{91.6}{3.0} & \pmv{84.3}{2.6} & \pmv{94.9}{1.6} \\
+\textbf{E2} & \textbf{+ BatchNorm + GAP} & \textbf{101{,}793} & 20.6 & \textbf{\pmv{95.9}{4.2}} & \textbf{\pmv{89.9}{3.7}} & \textbf{\pmv{92.4}{3.9}} & \textbf{\pmv{87.4}{4.2}} & \textbf{\pmv{96.0}{2.1}} \\
+E3 & + Dropout 0.5 & 101{,}793 & 20.6 & \pmv{95.7}{4.1} & \pmv{87.6}{3.0} & \pmv{87.4}{4.5} & \pmv{84.1}{3.5} & \pmv{94.9}{1.4} \\
+E4 & + Data augmentation & 101{,}793 & 17.4 & \pmv{95.0}{2.9} & \pmv{89.2}{3.6} & \pmv{89.5}{4.0} & \pmv{86.2}{4.1} & \pmv{95.2}{1.5} \\
+E5 & + 4th block (256 filters) & 405{,}409 & 18.6 & \pmv{95.2}{5.1} & \pmv{88.2}{3.5} & \pmv{89.5}{2.5} & \pmv{85.1}{3.8} & \pmv{95.6}{1.2} \\
+E6 & E5 with learning rate $3\!\times\!10^{-4}$ & 405{,}409 & 22.2 & \pmv{95.8}{3.2} & \pmv{89.9}{2.3} & \pmv{92.0}{3.7} & \pmv{87.3}{2.5} & \pmv{96.5}{0.5} \\
+E7 & E4 with 16/32/64 filters & 27{,}921 & 19.6 & \pmv{94.1}{4.6} & \pmv{87.4}{5.0} & \pmv{89.5}{9.9} & \pmv{84.1}{6.7} & \pmv{94.1}{1.3} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{CNN versus SVM}
+Table~\ref{tab:main} compares the selected CNN with the SVM under the controlled protocol, and Figs.~\ref{fig:cm} and~\ref{fig:roc} show the pooled confusion matrices and ROC curves. The SVM is slightly ahead on accuracy, F1 and AUC, but the fold-to-fold ranges overlap. Of the 636 paired predictions, 27 images are misclassified only by the SVM, 42 only by the CNN and 22 by both; the exact McNemar test gives $p=0.09$, so the difference is \textbf{not significant} at the 5\% level. The models make different kinds of errors: the CNN misses fewer counterfeits (18 false negatives against 21) but flags more genuine images (46 false positives against 28). With about 424 training images per fold this outcome is expected, because the SVM starts from features that already encode colour, texture and edges, while the CNN must learn them from little data. In answer to RQ1, the from-scratch CNN learns features that separate the two classes about as well as the handcrafted baseline, with the highest recall and a very small model.
+
+\begin{table}[t]
+\caption{SVM vs CNN (controlled protocol, grouped split; \%, mean $\pm$ std over 5 test folds)}
+\label{tab:main}
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcc}
+\toprule
+Metric & SVM (407 features) & CNN E2 (scratch) \\
+\midrule
+Accuracy & \pmv{92.3}{2.9} & \pmv{89.9}{3.7} \\
+Balanced accuracy & \pmv{92.1}{2.9} & \pmv{90.4}{3.2} \\
+Precision & \pmv{88.7}{5.2} & \pmv{83.2}{7.4} \\
+Recall & \pmv{91.2}{3.4} & \pmv{92.4}{3.9} \\
+F1 & \pmv{89.9}{3.8} & \pmv{87.4}{4.2} \\
+ROC-AUC & \pmv{97.8}{0.8} & \pmv{96.0}{2.1} \\
+\midrule
+TN / FP / FN / TP & 370 / 28 / 21 / 217 & 352 / 46 / 18 / 220 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Shortcut study}
+Table~\ref{tab:shortcut} answers RQ2. First, removing leakage and file-level cues changes little: the SVM's accuracy moves from 93.7\% to 93.9\% to 92.3\% across the three conditions and the CNN's from 86.8\% to 89.0\% to 89.9\%, all within one or two standard deviations. Resizing to $128\times128$ already hides file format and size from the image models, and the near-duplicates are too few to move the average. Second, the background probe stays high: an SVM that never sees the packaging reaches \textbf{\pmv{90.7}{2.5}\%} accuracy (ROC-AUC \pmv{97.0}{1.0}\%), close to the 92.3\% of the SVM that sees the whole image. Whatever separates the classes is largely present in the background, framing and photographic style, which controlled preprocessing cannot remove.
+
+\begin{table}[t]
+\caption{Shortcut study: accuracy (\%) under each condition}
+\label{tab:shortcut}
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcc}
+\toprule
+Condition & SVM & CNN \\
+\midrule
+Naive (raw, random split) & \pmv{93.7}{2.4} & \pmv{86.8}{3.9} \\
+Leakage removed (raw, grouped) & \pmv{93.9}{1.3} & \pmv{89.0}{0.6} \\
+Controlled (normalised, grouped) & \pmv{92.3}{2.9} & \pmv{89.9}{3.7} \\
+\midrule
+Background probe (border only) & \pmv{90.7}{2.5} & -- \\
+Metadata only (5 file properties) & 100.0 & -- \\
+Majority class & 62.6 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Grad-CAM and error analysis}
+On average 46.5\% of the Grad-CAM mass for genuine test images and 49.1\% for counterfeit ones falls in the outer 15\% frame, which covers 51.0\% of the image area, so the CNN's attention is spread roughly evenly rather than concentrated on the border (Fig.~\ref{fig:gradcam}). Evidence for ``counterfeit'' typically lies on pills, foil texture and printed text in tightly cropped images, while in catalogue-style genuine images the heat is often on the plain background or pack edges. Over all 636 out-of-fold predictions the CNN makes 64 errors (46 FP, 18 FN), 21 of them confident (score above 0.9 or below 0.1); the SVM makes 49 (28 FP, 21 FN). The CNN's confident false positives are mostly genuine images that resemble the counterfeit class in \emph{style}: close-up blister packs filling the frame, dark bands and watermarked close-ups. Its false negatives include counterfeit boxes with large plain light areas, which resemble the genuine catalogue photos. Read together with the background probe, this indicates that the classes differ in overall photographic style, visible throughout the image.
+
+%=====================================================================
+\section{Discussion}
+\textbf{RQ1.} A lightweight CNN trained from scratch on about 424 images per fold reaches 89.9\% accuracy and 92.4\% recall, statistically indistinguishable from a carefully tuned handcrafted-feature SVM. The most useful design change was architectural efficiency: global average pooling with batch normalisation removed 97.6\% of the parameters, reduced overfitting and slightly improved accuracy. Regularisation and capacity changes did not help measurably at this data size.
+
+\textbf{RQ2.} The audit shows that these accuracies should not be read as counterfeit detection. (i) File metadata alone predicts the label perfectly, so the classes come from different collection processes. (ii) The border-only SVM reaches 90.7\%, so the packaging itself is hardly needed. (iii) No brand is shared between the classes, so product identity is confounded with the label. (iv) Errors follow framing and style. Grouped splits and controlled preprocessing are necessary hygiene, but here they changed the numbers little, which itself shows that the remaining signal lies in image content. Because no product appears in both classes, the dataset cannot reveal how much of the accuracy, if any, reflects real counterfeit cues.
+
+\textbf{Relation to prior work.} Ramos \emph{et al.}~\cite{ramos2024} report about 88.75\% on self-captured images of one product taken with one camera. Our numbers come from a different, web-collected dataset and protocol, so they are not directly comparable and we claim no improvement. Our audit suggests that their design, with both classes captured on the same rig, is the right kind of design: without an acquisition audit, accuracy alone cannot distinguish a counterfeit detector from a source detector.
+
+\textbf{Limitations.} The dataset is small (636 images, about 127 per test fold), its labels cannot be verified, and there is no external test set. Perceptual-hash grouping with a fixed threshold can miss heavily edited copies. Scores are not calibrated probabilities, and visual screening of packaging cannot establish the authenticity of a medicine.
+
+%=====================================================================
+\section{Conclusion and Future Work}
+We presented a complete, reproducible pipeline for packaging-image authentication: duplicate removal, grouped cross-validation, a handcrafted-feature SVM, a 101{,}793-parameter CNN trained from scratch and selected through seven controlled experiments, Grad-CAM, error analysis and a web demo. The CNN reaches 89.9\% accuracy, 96.0\% ROC-AUC and 92.4\% counterfeit recall, matching the SVM within statistical noise while being 42$\times$ smaller than the initial design. Our shortcut audit shows that, on the public benchmark, file metadata alone gives 100\% accuracy and the image border alone 90.7\%, so high accuracy there is not evidence of counterfeit detection. The audit probes are simple to run and we recommend them as a standard check before results in this area are reported.
+
+Future work should (1) collect matched data, with the same products photographed as genuine and counterfeit under the same camera, lighting and background, for example with a regulator or a pharmacy laboratory; (2) require the metadata and border probes to be near chance before results are trusted; (3) validate on an independently collected test set; (4) add text verification with OCR (spelling, batch numbers, dates) and security-feature analysis; (5) localise the package before classification to remove the background; and (6) calibrate the scores for mobile deployment.
+
+\section*{Code Availability}
+Code, trained model, per-fold results and the demo are available at \url{\repourl}.
+
+\section*{Acknowledgment}
+The authors thank the Department of Information Technology, Netaji Subhas University of Technology, New Delhi, for supporting this work.
+
+\begin{thebibliography}{00}
+\bibitem{ramos2024} R. R. T. Ramos, K. R. B. Samonte, and C. O. Manlises, ``Medicine authentication based on image processing using convolutional neural networks,'' in \textit{Proc. 16th Int. Conf. Computer and Automation Engineering (ICCAE)}, IEEE, 2024, pp. 278--282, doi: 10.1109/ICCAE59995.2024.10569752.
+\bibitem{zakaria2025} Y. Zakaria, E. Ishidera, R. Ishiyama, T. Matsui, H. Suwa, Y. Matsuda, and K. Yasumoto, ``Counterfeit medicine detection by visual inspection of package design using multimodal LLMs with text and image prompt engineering,'' in \textit{Proc. Int. Conf. Intelligent Medicine and Image Processing (IMIP 2025)}, Proc. SPIE, vol. 13658, 2025, pp. 92--99, doi: 10.1117/12.3071640.
+\bibitem{kaggle} surajkumarjha1, ``Fake vs real medicine datasets images,'' Kaggle. [Online]. Available: https://www.kaggle.com/datasets/surajkumarjha1/fake-vs-real-medicine-datasets-images
+\bibitem{provenance2026} sophiezla, ``Provenance confounding in image authenticity classification,'' code and manuscript, GitHub/Zenodo, 2026, doi: 10.5281/zenodo.21936720.
+\bibitem{geirhos2020} R. Geirhos, J.-H. Jacobsen, C. Michaelis, R. Zemel, W. Brendel, M. Bethge, and F. A. Wichmann, ``Shortcut learning in deep neural networks,'' \textit{Nature Machine Intelligence}, vol. 2, pp. 665--673, 2020.
+\bibitem{zech2018} J. R. Zech, M. A. Badgeley, M. Liu, A. B. Costa, J. J. Titano, and E. K. Oermann, ``Variable generalization performance of a deep learning model to detect pneumonia in chest radiographs: A cross-sectional study,'' \textit{PLOS Medicine}, vol. 15, no. 11, e1002683, 2018.
+\bibitem{cortes1995} C. Cortes and V. Vapnik, ``Support-vector networks,'' \textit{Machine Learning}, vol. 20, pp. 273--297, 1995.
+\bibitem{dalal2005} N. Dalal and B. Triggs, ``Histograms of oriented gradients for human detection,'' in \textit{Proc. IEEE CVPR}, 2005, pp. 886--893.
+\bibitem{ojala2002} T. Ojala, M. Pietik\"ainen, and T. M\"aenp\"a\"a, ``Multiresolution gray-scale and rotation invariant texture classification with local binary patterns,'' \textit{IEEE Trans. Pattern Anal. Mach. Intell.}, vol. 24, no. 7, pp. 971--987, 2002.
+\bibitem{ioffe2015} S. Ioffe and C. Szegedy, ``Batch normalization: Accelerating deep network training by reducing internal covariate shift,'' in \textit{Proc. ICML}, 2015, pp. 448--456.
+\bibitem{srivastava2014} N. Srivastava, G. Hinton, A. Krizhevsky, I. Sutskever, and R. Salakhutdinov, ``Dropout: A simple way to prevent neural networks from overfitting,'' \textit{J. Mach. Learn. Res.}, vol. 15, pp. 1929--1958, 2014.
+\bibitem{lin2014} M. Lin, Q. Chen, and S. Yan, ``Network in network,'' in \textit{Proc. ICLR}, 2014.
+\bibitem{kingma2015} D. P. Kingma and J. Ba, ``Adam: A method for stochastic optimization,'' in \textit{Proc. ICLR}, 2015.
+\bibitem{selvaraju2017} R. R. Selvaraju, M. Cogswell, A. Das, R. Vedantam, D. Parikh, and D. Batra, ``Grad-CAM: Visual explanations from deep networks via gradient-based localization,'' in \textit{Proc. IEEE ICCV}, 2017, pp. 618--626.
+\end{thebibliography}
+
+\end{document}
