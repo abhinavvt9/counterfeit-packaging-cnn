@@ -1,4 +1,4 @@
-# Counterfeit Medicine Packaging Detection using a CNN from Scratch
+# Counterfeit Medicine Packaging Detection Using a CNN Trained from Scratch
 
 In this project we built a small CNN, trained completely from scratch (no pretrained weights), that looks at a photo of medicine packaging and says if it is **genuine** or **counterfeit**. We compared it with an SVM that uses handcrafted features. We also checked the dataset itself for shortcuts, and that turned out to be the most interesting part.
 
